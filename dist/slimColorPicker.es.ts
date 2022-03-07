@@ -1624,4 +1624,4 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
   ]);
 }
 var SlimColorPicker = /* @__PURE__ */ _export_sfc(_sfc_main, [["render", _sfc_render]]);
-export { SlimColorPicker };
+export { SlimColorPicker as default };

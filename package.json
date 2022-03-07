@@ -1,6 +1,6 @@
 {
   "name": "slim-color-picker",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "a color picker component for Vue3",
   "private": false,
   "main": "./dist/slimColorPicker.umd.ts",
@@ -25,7 +25,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/chnkarl/slim_color_picker.git"
+    "url": "git+https://github.com/chnkarl/slim-color-picker.git"
   },
   "keywords": [
     "color",
@@ -35,9 +35,9 @@
   "author": "Tao Song",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/chnkarl/slim_color_picker/issues"
+    "url": "https://github.com/chnkarl/slim-color-picker/issues"
   },
-  "homepage": "https://github.com/chnkarl/slim_color_picker#readme",
+  "homepage": "https://github.com/chnkarl/slim-color-picker#readme",
   "dependencies": {
     "tinycolor2": "^1.4.2",
     "vue": "^3.2.25"
