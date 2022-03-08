@@ -1,4 +1,4 @@
-import { defineComponent, ref, watch, onMounted, nextTick, openBlock, createElementBlock, withModifiers, createElementVNode, normalizeStyle, normalizeClass, withDirectives, vShow, vModelSelect, createCommentVNode, vModelText, toDisplayString, Fragment, renderList } from "vue";
+import { defineComponent, ref, watch, nextTick, resolveDirective, openBlock, createElementBlock, createElementVNode, normalizeStyle, withModifiers, withDirectives, normalizeClass, vShow, vModelSelect, createCommentVNode, vModelText, toDisplayString, Fragment, renderList } from "vue";
 var tinycolor = { exports: {} };
 (function(module) {
   (function(Math2) {
@@ -912,6 +912,27 @@ var tinycolor = { exports: {} };
   })(Math);
 })(tinycolor);
 var tinycolor2 = tinycolor.exports;
+var clickout = {
+  beforeMount(el, binding) {
+    const callback = binding.value;
+    const directiveClass = "directive-clickout";
+    el.clickEvent = function(event) {
+      const elementIsActive = event.target === el || el.contains(event.target);
+      if (elementIsActive) {
+        el.classList.add(directiveClass);
+      } else {
+        if (el.classList.contains(directiveClass)) {
+          el.classList.remove(directiveClass);
+        }
+        callback({ el, event });
+      }
+    };
+    document.addEventListener("click", el.clickEvent);
+  },
+  unmounted(el) {
+    document.removeEventListener("click", el.clickEvent);
+  }
+};
 var SlimColorPicker_vue_vue_type_style_index_0_scope_true_lang = "";
 var _export_sfc = (sfc, props) => {
   const target = sfc.__vccOpts || sfc;
@@ -955,6 +976,7 @@ const _sfc_main = defineComponent({
       default: []
     }
   },
+  directives: { clickout },
   setup(props, { attrs, slots, emit, expose }) {
     let format = ref(props.initFormat);
     let refColorPanel = ref(null);
@@ -1012,12 +1034,6 @@ const _sfc_main = defineComponent({
     watch(inputValue, () => {
       emit("change", inputValue.value);
     });
-    onMounted(() => {
-      document.addEventListener("click", (e) => {
-        e.preventDefault();
-        cancel();
-      });
-    });
     const init = () => {
       ctxSquare = refSquare.value.getContext("2d");
       initSquare();
@@ -1033,10 +1049,8 @@ const _sfc_main = defineComponent({
       isShow.value = true;
       await nextTick(() => {
         setColorPanelPosition();
-        console.log("step 4");
         init();
       });
-      console.log("step 5");
     };
     const setColorPanelPosition = () => {
       let handlerLeft = refColorPanel.value.getBoundingClientRect().left;
@@ -1284,7 +1298,6 @@ const _sfc_main = defineComponent({
             y: 0
           };
           if (pos2.x >= 0 && pos2.x <= barAlphaWidth && pos2.y >= 0 && pos2.y <= barAlphaHeight) {
-            console.log("pos.x: ", pos2.x);
             pos2.x = pos2.x < 0 ? 0 : pos2.x > barAlphaWidth ? barAlphaWidth : pos2.x;
             barAlphaHandlerLeft.value = pos2.x;
             alpha = parseFloat((pos2.x / barAlphaWidth).toFixed(2));
@@ -1335,7 +1348,6 @@ const _sfc_main = defineComponent({
       let tinyColor = tinycolor2(origin);
       tinyColor.setAlpha(alpha);
       let exchanged = "";
-      console.log("format.value: ", format.value);
       switch (format.value) {
         case "hex":
           exchanged = tinyColor.toHex();
@@ -1353,7 +1365,6 @@ const _sfc_main = defineComponent({
           exchanged = tinyColor.toHslString();
           break;
       }
-      console.log("exchanged: ", exchanged);
       return exchanged;
     };
     const toHsl = () => {
@@ -1460,40 +1471,38 @@ const _sfc_main = defineComponent({
     };
   }
 });
-const _hoisted_1 = { class: "slim-color-picker_panel_main" };
-const _hoisted_2 = {
+const _hoisted_1 = { class: "slim-color-picker" };
+const _hoisted_2 = { class: "slim-color-picker_panel_main" };
+const _hoisted_3 = {
   ref: "refPanel",
   class: "panel_main_square"
 };
-const _hoisted_3 = { class: "panel_main_bar" };
-const _hoisted_4 = { class: "slim-color-picker_panel_alpha" };
-const _hoisted_5 = { class: "slim-color-picker_panel_form" };
-const _hoisted_6 = { class: "panel_form_input" };
-const _hoisted_7 = { class: "form_input_format" };
-const _hoisted_8 = /* @__PURE__ */ createElementVNode("option", { value: "hex" }, "Hex", -1);
-const _hoisted_9 = /* @__PURE__ */ createElementVNode("option", { value: "rgb" }, "RGB", -1);
-const _hoisted_10 = /* @__PURE__ */ createElementVNode("option", { value: "hsl" }, "HSL", -1);
-const _hoisted_11 = [
-  _hoisted_8,
+const _hoisted_4 = { class: "panel_main_bar" };
+const _hoisted_5 = { class: "slim-color-picker_panel_alpha" };
+const _hoisted_6 = { class: "slim-color-picker_panel_form" };
+const _hoisted_7 = { class: "panel_form_input" };
+const _hoisted_8 = { class: "form_input_format" };
+const _hoisted_9 = /* @__PURE__ */ createElementVNode("option", { value: "hex" }, "Hex", -1);
+const _hoisted_10 = /* @__PURE__ */ createElementVNode("option", { value: "rgb" }, "RGB", -1);
+const _hoisted_11 = /* @__PURE__ */ createElementVNode("option", { value: "hsl" }, "HSL", -1);
+const _hoisted_12 = [
   _hoisted_9,
-  _hoisted_10
+  _hoisted_10,
+  _hoisted_11
 ];
-const _hoisted_12 = {
+const _hoisted_13 = {
   key: 0,
   class: "form_input_symbol"
 };
-const _hoisted_13 = { class: "panel_form_confirm" };
-const _hoisted_14 = {
+const _hoisted_14 = { class: "panel_form_confirm" };
+const _hoisted_15 = {
   key: 0,
   class: "slim-color-picker_panel_preset"
 };
-const _hoisted_15 = ["onClick"];
+const _hoisted_16 = ["onClick"];
 function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
-  return openBlock(), createElementBlock("div", {
-    class: "slim-color-picker",
-    onClick: _cache[14] || (_cache[14] = withModifiers(() => {
-    }, ["stop"]))
-  }, [
+  const _directive_clickout = resolveDirective("clickout");
+  return openBlock(), createElementBlock("div", _hoisted_1, [
     createElementVNode("div", {
       class: "slim-color-picker_handler",
       style: normalizeStyle({
@@ -1514,7 +1523,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         onClick: _cache[0] || (_cache[0] = withModifiers((...args) => _ctx.open && _ctx.open(...args), ["stop"]))
       }, null, 4)
     ], 4),
-    _ctx.isShow ? (openBlock(), createElementBlock("div", {
+    _ctx.isShow ? withDirectives((openBlock(), createElementBlock("div", {
       key: 0,
       ref: "refColorPanel",
       class: normalizeClass(["slim-color-picker_panel", { dark: _ctx.theme === "dark" }]),
@@ -1523,8 +1532,8 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
         top: `${_ctx.colorPickerTop}px`
       })
     }, [
-      createElementVNode("div", _hoisted_1, [
-        createElementVNode("div", _hoisted_2, [
+      createElementVNode("div", _hoisted_2, [
+        createElementVNode("div", _hoisted_3, [
           createElementVNode("canvas", {
             ref: "refSquare",
             width: "280",
@@ -1541,7 +1550,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
             })
           }, null, 4)
         ], 512),
-        createElementVNode("div", _hoisted_3, [
+        createElementVNode("div", _hoisted_4, [
           createElementVNode("canvas", {
             ref: "refBar",
             width: "12",
@@ -1558,7 +1567,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
           }, null, 36)
         ])
       ]),
-      withDirectives(createElementVNode("div", _hoisted_4, [
+      withDirectives(createElementVNode("div", _hoisted_5, [
         createElementVNode("canvas", {
           ref: "refBarAlpha",
           width: "280",
@@ -1575,18 +1584,18 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
       ], 512), [
         [vShow, _ctx.format !== "hex"]
       ]),
-      createElementVNode("div", _hoisted_5, [
-        createElementVNode("div", _hoisted_6, [
-          createElementVNode("div", _hoisted_7, [
+      createElementVNode("div", _hoisted_6, [
+        createElementVNode("div", _hoisted_7, [
+          createElementVNode("div", _hoisted_8, [
             withDirectives(createElementVNode("select", {
               class: "input_format_select",
               "onUpdate:modelValue": _cache[9] || (_cache[9] = ($event) => _ctx.format = $event),
               onChange: _cache[10] || (_cache[10] = (...args) => _ctx.changeFormat && _ctx.changeFormat(...args))
-            }, _hoisted_11, 544), [
+            }, _hoisted_12, 544), [
               [vModelSelect, _ctx.format]
             ])
           ]),
-          _ctx.format === "hex" ? (openBlock(), createElementBlock("div", _hoisted_12, "#")) : createCommentVNode("", true),
+          _ctx.format === "hex" ? (openBlock(), createElementBlock("div", _hoisted_13, "#")) : createCommentVNode("", true),
           withDirectives(createElementVNode("input", {
             type: "text",
             "onUpdate:modelValue": _cache[11] || (_cache[11] = ($event) => _ctx.inputValue = $event),
@@ -1596,7 +1605,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
             [vModelText, _ctx.inputValue]
           ])
         ]),
-        createElementVNode("div", _hoisted_13, [
+        createElementVNode("div", _hoisted_14, [
           createElementVNode("button", {
             type: "button",
             class: "form_confirm_btn",
@@ -1604,7 +1613,7 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
           }, toDisplayString(_ctx.okText), 1)
         ])
       ]),
-      _ctx.presets.length > 0 ? (openBlock(), createElementBlock("div", _hoisted_14, [
+      _ctx.presets.length > 0 ? (openBlock(), createElementBlock("div", _hoisted_15, [
         (openBlock(true), createElementBlock(Fragment, null, renderList(_ctx.presets, (preset, p) => {
           return openBlock(), createElementBlock("div", {
             class: "panel_preset_item",
@@ -1617,10 +1626,12 @@ function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
                 background: `${preset}`
               })
             }, null, 4)
-          ], 8, _hoisted_15);
+          ], 8, _hoisted_16);
         }), 128))
       ])) : createCommentVNode("", true)
-    ], 6)) : createCommentVNode("", true)
+    ], 6)), [
+      [_directive_clickout, _ctx.cancel]
+    ]) : createCommentVNode("", true)
   ]);
 }
 var SlimColorPicker = /* @__PURE__ */ _export_sfc(_sfc_main, [["render", _sfc_render]]);

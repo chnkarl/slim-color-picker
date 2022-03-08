@@ -1,5 +1,5 @@
 <template>
-  <div class="slim-color-picker" @click.stop="() => {}">
+  <div class="slim-color-picker">
     <!-- 暴露在外部被可以点击的选择元素 -->
     <div
       class="slim-color-picker_handler"
@@ -27,6 +27,7 @@
       ref="refColorPanel"
       class="slim-color-picker_panel"
       :class="{ dark: theme === 'dark' }"
+      v-clickout="cancel"
       v-if="isShow"
       :style="{
         left: `${colorPickerLeft}px`,
@@ -155,6 +156,8 @@ import {
 
 import tinycolor2 from 'tinycolor2';
 
+import clickout from '../assets/ts/directives/clickout'
+
 interface Pos {
   x: number;
   y: number;
@@ -198,6 +201,7 @@ export default defineComponent({
       default: [],
     },
   },
+  directives: { clickout },
   setup(props, { attrs, slots, emit, expose }) {
     let format = ref<string>(props.initFormat);
 
@@ -291,13 +295,6 @@ export default defineComponent({
       emit('change', inputValue.value);
     });
 
-    onMounted(() => {
-      document.addEventListener('click', (e: any) => {
-        e.preventDefault();
-        cancel();
-      });
-    });
-
     const init = () => {
       ctxSquare = refSquare.value.getContext(
         '2d',
@@ -320,15 +317,13 @@ export default defineComponent({
     };
 
     const open = async () => {
+
       isShow.value = true;
 
       await nextTick(() => {
         setColorPanelPosition();
-        console.log('step 4');
         init();
       })
-
-      console.log('step 5');
     };
 
     // 画板定位
@@ -753,7 +748,6 @@ export default defineComponent({
             pos.y >= 0 &&
             pos.y <= barAlphaHeight
           ) {
-            console.log('pos.x: ', pos.x);
 
             pos.x =
               pos.x < 0 ? 0 : pos.x > barAlphaWidth ? barAlphaWidth : pos.x;
@@ -853,8 +847,6 @@ export default defineComponent({
 
       let exchanged: string = '';
 
-      console.log('format.value: ', format.value);
-
       switch (format.value) {
         case 'hex':
           exchanged = tinyColor.toHex();
@@ -876,8 +868,6 @@ export default defineComponent({
           exchanged = tinyColor.toHslString();
           break;
       }
-
-      console.log('exchanged: ', exchanged);
 
       return exchanged;
     };
@@ -951,6 +941,7 @@ export default defineComponent({
         outputColor({ h, s, l });
 
         hide();
+
       }
     };
 
@@ -1024,7 +1015,7 @@ export default defineComponent({
       isShow,
       ok,
       cancel,
-      choosePreset,
+      choosePreset
     };
   },
 });
