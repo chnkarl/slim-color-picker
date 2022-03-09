@@ -10,6 +10,7 @@ export default defineConfig({
     lib: {
       entry: path.resolve(__dirname, 'src/index.ts'),
       name: 'SlimColorPicker',
+      formats: ["es"],
       fileName: (format) => `slimColorPicker.${format}.ts`
     },
     rollupOptions: {

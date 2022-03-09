@@ -1,9 +1,9 @@
 {
   "name": "slim-color-picker",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "a color picker component for Vue3",
   "private": false,
-  "main": "./dist/slimColorPicker.umd.ts",
+  "main": "./dist/slimColorPicker.es.ts",
   "module": "./dist/slimColorPicker.es.ts",
   "files": [
     "dist"
@@ -11,7 +11,7 @@
   "exports": {
     ".": {
       "import": "./dist/slimColorPicker.es.ts",
-      "require": "./dist/slimColorPicker.umd.ts"
+      "require": "./dist/slimColorPicker.es.ts"
     },
     "./dist/style.css": {
       "import": "./dist/style.css",
