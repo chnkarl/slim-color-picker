@@ -329,26 +329,31 @@ export default defineComponent({
     // 画板定位
     const setColorPanelPosition = () => {
       // color picker panel 左边距离左边距离
-      let handlerLeft = refColorPanel.value.getBoundingClientRect().left;
+      let handlerLeft = refHandler.value.getBoundingClientRect().left;
 
       // color picker panel 底部边距离顶部
-      let handlerTop = refColorPanel.value.getBoundingClientRect().top;
+      let handlerTop = refHandler.value.getBoundingClientRect().top;
 
       // 色板的宽
       let colorPanelWidth = refColorPanel.value.clientWidth;
       let colorPaneHeight = refColorPanel.value.clientHeight;
 
-      // 看右边宽度是否可以放置
+      // 弹框 left 定位
       if (handlerLeft + props.width >= colorPanelWidth) {
-        colorPickerLeft.value = -(colorPanelWidth + 6);
+        colorPickerLeft.value = handlerLeft - (colorPanelWidth + 6);
       } else {
-        colorPickerLeft.value = props.width + 6;
+        colorPickerLeft.value = handlerLeft + props.width + 6;
       }
 
-      if (handlerTop + props.width >= colorPaneHeight) {
-        colorPickerTop.value = -(colorPaneHeight - props.width);
+      // 弹框的 top 定位
+      if (handlerTop + props.height >= colorPaneHeight) {
+        colorPickerTop.value = handlerTop - colorPaneHeight + props.height
+      }
+      else {
+        colorPickerTop.value = handlerTop
       }
 
+      // square 点击拖动时圆点位置
       panelLeft =
         refPanel.value.getBoundingClientRect().left + colorPickerLeft.value;
 
@@ -1026,6 +1031,7 @@ export default defineComponent({
 
 .slim-color-picker {
   position: relative;
+  z-index: 10000000000;
 
   .slim-color-picker_handler {
     background: url('/image/static/color_picker_alpha.png') repeat;
@@ -1037,13 +1043,12 @@ export default defineComponent({
   }
 
   .slim-color-picker_panel {
-    position: absolute;
+    position: fixed;
     box-shadow: 0px 2px 12px 0px rgba(0, 0, 0, 0.1);
     padding: 10px;
     border: solid 1px rgb(228, 231, 237);
     border-radius: 2px;
     background: #ffffff;
-    z-index: 10000000000;
     line-height: 0px;
 
     .slim-color-picker_panel_main {

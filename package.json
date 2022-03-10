@@ -1,6 +1,6 @@
 {
   "name": "slim-color-picker",
-  "version": "1.0.5",
+  "version": "1.0.8",
   "description": "a color picker component for Vue3",
   "private": false,
   "main": "./dist/slimColorPicker.es.ts",

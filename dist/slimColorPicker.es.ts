@@ -1053,17 +1053,19 @@ const _sfc_main = defineComponent({
       });
     };
     const setColorPanelPosition = () => {
-      let handlerLeft = refColorPanel.value.getBoundingClientRect().left;
-      let handlerTop = refColorPanel.value.getBoundingClientRect().top;
+      let handlerLeft = refHandler.value.getBoundingClientRect().left;
+      let handlerTop = refHandler.value.getBoundingClientRect().top;
       let colorPanelWidth = refColorPanel.value.clientWidth;
       let colorPaneHeight = refColorPanel.value.clientHeight;
       if (handlerLeft + props.width >= colorPanelWidth) {
-        colorPickerLeft.value = -(colorPanelWidth + 6);
+        colorPickerLeft.value = handlerLeft - (colorPanelWidth + 6);
       } else {
-        colorPickerLeft.value = props.width + 6;
+        colorPickerLeft.value = handlerLeft + props.width + 6;
       }
-      if (handlerTop + props.width >= colorPaneHeight) {
-        colorPickerTop.value = -(colorPaneHeight - props.width);
+      if (handlerTop + props.height >= colorPaneHeight) {
+        colorPickerTop.value = handlerTop - colorPaneHeight + props.height;
+      } else {
+        colorPickerTop.value = handlerTop;
       }
       panelLeft = refPanel.value.getBoundingClientRect().left + colorPickerLeft.value;
       panelTop = refPanel.value.getBoundingClientRect().top + colorPickerTop.value;

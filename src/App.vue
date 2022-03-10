@@ -27,12 +27,12 @@ const presets = reactive([
 <template>
   <div>
     <!-- 左上 -->
-    <div style="position: relative; top: 50px; left: 200px">
+    <div style="position: relative; top: 50px; left: 100px">
       <SlimColorPicker :width="30" :height="30" v-model="color" />
     </div>
 
     <!-- 左下 -->
-    <div style="position: relative; top: 610px; left: 200px">
+    <div style="position: relative; top: 810px; left: 200px">
       <SlimColorPicker
         :width="30"
         :height="30"
@@ -54,7 +54,7 @@ const presets = reactive([
     </div>
 
     <!-- 右下 -->
-    <div style="position: relative; top: 610px; left: 940px">
+    <div style="position: relative; top: 810px; left: 940px">
       <SlimColorPicker
         :width="30"
         :height="30"
