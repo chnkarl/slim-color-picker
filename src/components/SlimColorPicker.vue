@@ -154,9 +154,9 @@ import {
   nextTick,
 } from 'vue';
 
-import tinycolor2 from 'tinycolor2';
-
 import clickout from '../assets/ts/directives/clickout'
+
+import SlimColor from '../assets/ts/SlimColor'
 
 interface Pos {
   x: number;
@@ -203,6 +203,10 @@ export default defineComponent({
   },
   directives: { clickout },
   setup(props, { attrs, slots, emit, expose }) {
+
+    let slimColor = new SlimColor()
+    slimColor.init(props.modelValue)
+
     let format = ref<string>(props.initFormat);
 
     let refColorPanel: any = ref(null);
@@ -257,7 +261,8 @@ export default defineComponent({
 
     let ctxBarAlpha: CanvasRenderingContext2D;
 
-    let { h, s, l, a } = tinycolor2(props.modelValue).toHsl();
+
+    let { h, s, l, a } = slimColor.toHsl();
 
     // 色相（H）是色彩的基本属性，就是平常所说的颜色名称，如红色、黄色等。
     let hue: number = h;
@@ -312,7 +317,9 @@ export default defineComponent({
         generateBarAlpha();
       }
 
-      outputColor(tinycolor2(inputValue.value).toHsl());
+      slimColor.init(props.modelValue)
+
+      outputColor(slimColor.toHsl());
       changeInput();
     };
 
@@ -374,8 +381,10 @@ export default defineComponent({
         squarePots.xEnd,
         0,
       );
+    
+      slimColor.init(inputValue.value)
 
-      let { h } = tinycolor2(inputValue.value).toHsl();
+      let { h } = slimColor.toHsl();
 
       gradientBase.addColorStop(1, `hsl(${h}, 100%, 50%)`);
       gradientBase.addColorStop(0, 'hsl(0, 0%, 100%)');
@@ -791,11 +800,13 @@ export default defineComponent({
     const getPointHsl = (ctx: CanvasRenderingContext2D, pos: Pos) => {
       let imgData = ctx.getImageData(pos.x, pos.y, 1, 1);
 
-      let { h, s, l } = tinycolor2({
+      slimColor.init({
         r: imgData.data[0],
         g: imgData.data[1],
         b: imgData.data[2],
-      }).toHsl();
+      })
+
+      let { h, s, l } = slimColor.toHsl();
 
       return { h, s, l };
     };
@@ -846,31 +857,31 @@ export default defineComponent({
      * @param hsl
      */
     const exchangeFormat = (origin: any) => {
-      let tinyColor = tinycolor2(origin);
 
-      tinyColor.setAlpha(alpha);
+      slimColor.init(origin)
+      slimColor.setAlpha(alpha);
 
       let exchanged: string = '';
 
       switch (format.value) {
         case 'hex':
-          exchanged = tinyColor.toHex();
+          exchanged = slimColor.toHex();
           break;
 
         case 'rgb':
-          exchanged = tinyColor.toRgbString();
+          exchanged = slimColor.toRgbString();
           break;
 
         case 'rgba':
-          exchanged = tinyColor.toRgbString();
+          exchanged = slimColor.toRgbString();
           break;
 
         case 'hsl':
-          exchanged = tinyColor.toHslString();
+          exchanged = slimColor.toHslString();
           break;
 
         case 'hsla':
-          exchanged = tinyColor.toHslString();
+          exchanged = slimColor.toHslString();
           break;
       }
 
@@ -878,17 +889,21 @@ export default defineComponent({
     };
 
     const toHsl = () => {
-      const tinyColor = tinycolor2(inputValue.value);
+      
+      slimColor.init(inputValue.value)
 
-      alpha = tinyColor.getAlpha();
+      alpha = slimColor.getAlpha();
 
-      return tinyColor.toHsl();
+      return slimColor.toHsl();
     };
 
     // 设置颜色选择板点击个颜色位置的 handler
     const setHandlers = () => {
       // - 移动 point 位置
-      let { h, s, v } = tinycolor2(inputValue.value).toHsv();
+      
+      slimColor.init(inputValue.value)
+
+      let { h, s, v } = slimColor.toHsv();
 
       let posY = getPosTop(h);
 
@@ -939,7 +954,10 @@ export default defineComponent({
 
     const cancel = () => {
       if (isShow.value) {
-        let { h, s, l, a } = tinycolor2(colorBefore).toHsl();
+        
+      slimColor.init(colorBefore)
+
+      let { h, s, l, a } = slimColor.toHsl();
 
         alpha = a;
 
@@ -968,11 +986,12 @@ export default defineComponent({
 
       inputValue.value = preset;
 
-      const tinyColor = tinycolor2(preset);
+      slimColor.init(preset)
 
-      format.value = tinyColor.getFormat();
+      format.value = slimColor.getFormat();
+      console.log('format.value: ', format.value)
 
-      alpha = tinyColor.getAlpha();
+      alpha = slimColor.getAlpha();
 
       changeFormat();
 

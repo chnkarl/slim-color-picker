@@ -1,6 +1,6 @@
 {
   "name": "slim-color-picker",
-  "version": "1.0.8",
+  "version": "1.0.15",
   "description": "a color picker component for Vue3",
   "private": false,
   "main": "./dist/slimColorPicker.es.ts",
@@ -39,11 +39,9 @@
   },
   "homepage": "https://github.com/chnkarl/slim-color-picker#readme",
   "dependencies": {
-    "tinycolor2": "^1.4.2",
     "vue": "^3.2.25"
   },
   "devDependencies": {
-    "@types/tinycolor2": "^1.4.3",
     "@vitejs/plugin-vue": "^2.2.0",
     "less": "^4.1.2",
     "less-loader": "^10.2.0",

@@ -4,19 +4,13 @@ import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [vue({
-    template: {
-      compilerOptions: {
-        isCustomElement: tag => tag.startsWith('slim-')
-      }
-    }
-  })],
+  plugins: [vue()],
   base: './',
   build: {
     lib: {
       entry: path.resolve(__dirname, 'src/index.ts'),
       name: 'SlimColorPicker',
-      formats: ["es"],
+      formats: ["es", "umd"],
       fileName: (format) => `slimColorPicker.${format}.ts`
     },
     rollupOptions: {
