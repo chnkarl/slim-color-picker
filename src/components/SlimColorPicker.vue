@@ -1055,9 +1055,6 @@ export default defineComponent({
   .slim-color-picker_handler {
     background: url('/image/static/color_picker_alpha.png') repeat;
     outline: #dddddd solid 1px;
-    position: absolute;
-    top: 0px;
-    left: 0px;
     cursor: pointer;
   }
 
