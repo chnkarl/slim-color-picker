@@ -142,528 +142,546 @@
 </template>
 
 <script lang="ts">
-import {
-  defineComponent,
-  ref,
-  reactive,
-  computed,
-  watch,
-  onMounted,
-  getCurrentInstance,
-  Ref,
-  nextTick,
-} from 'vue';
-
-import clickout from '../assets/ts/directives/clickout'
-
-import SlimColor from '../assets/ts/SlimColor'
-
 interface Pos {
   x: number;
   y: number;
 }
 
-export default defineComponent({
-  props: {
-    modelValue: {
-      // 接收 v-model　的传值，实际上是　v-model:modelValue
-      type: String,
-      default: 'hsl(216, 100%, 50%)',
-    },
-    initFormat: {
-      type: String,
-      default: 'hex', // rgb / hex / hsl / hsv
-    },
-    width: {
-      type: Number,
-      default: 50,
-    },
-    height: {
-      type: Number,
-      default: 50,
-    },
-    theme: {
-      type: String,
-      default: 'light', // light / dark
-    },
-    okText: {
-      // 确认按钮的文字
-      type: String,
-      default: 'OK',
-    },
-    radius: {
-      // handler 的圆角
-      type: Number,
-      default: 0,
-    },
-    presets: {
-      type: Array, // 预置颜色
-      default: [],
-    },
-  },
+export default {
   directives: { clickout },
-  setup(props, { attrs, slots, emit, expose }) {
+};
+</script>
 
-    let slimColor = new SlimColor()
-    slimColor.init(props.modelValue)
+<script lang="ts" setup>
+import { ref, watch, nextTick } from "vue";
+import clickout from "../assets/ts/directives/clickout";
+import SlimColor from "../assets/ts/SlimColor";
 
-    let format = ref<string>(props.initFormat);
+const props = defineProps({
+  modelValue: {
+    // 接收 v-model　的传值，实际上是　v-model:modelValue
+    type: String,
+    default: "hsl(216, 100%, 50%)",
+  },
+  initFormat: {
+    type: String,
+    default: "hex", // rgb / hex / hsl / hsv
+  },
+  width: {
+    type: Number,
+    default: 50,
+  },
+  height: {
+    type: Number,
+    default: 50,
+  },
+  theme: {
+    type: String,
+    default: "light", // light / dark
+  },
+  okText: {
+    // 确认按钮的文字
+    type: String,
+    default: "OK",
+  },
+  radius: {
+    // handler 的圆角
+    type: Number,
+    default: 0,
+  },
+  presets: {
+    type: Array, // 预置颜色
+    default: () => [],
+  },
+});
 
-    let refColorPanel: any = ref(null);
-    let refHandler: any = ref(null);
+let slimColor = new SlimColor();
+slimColor.init(props.modelValue);
 
-    let refPanel: any = ref(null);
-    let refSquare: any = ref(null);
+let format = ref<string>(props.initFormat);
 
-    let refBarAlpha: any = ref(null);
-    let refBarAlphaHandler: any = ref(null);
+let refColorPanel: any = ref(null);
+let refHandler: any = ref(null);
 
-    let refBar: any = ref(null);
-    let refBarHandler: any = ref(null);
+let refPanel: any = ref(null);
+let refSquare: any = ref(null);
 
-    let squarePointX = ref<number>(279);
-    let squarePointY = ref<number>(1);
+let refBarAlpha: any = ref(null);
+let refBarAlphaHandler: any = ref(null);
 
-    let squareWidth = 280;
-    let squareHeight = 180;
-    let squarePots: any = {
-      xBegin: 0,
-      xEnd: 280,
-      yBegin: 0,
-      yEnd: 180,
+let refBar: any = ref(null);
+let refBarHandler: any = ref(null);
+
+let squarePointX = ref<number>(279);
+let squarePointY = ref<number>(1);
+
+let squareWidth = 280;
+let squareHeight = 180;
+let squarePots: any = {
+  xBegin: 0,
+  xEnd: 280,
+  yBegin: 0,
+  yEnd: 180,
+};
+
+let barWidth = 12;
+let barHeight = 180;
+let barPots: any = {
+  xBegin: 0,
+  xEnd: 12,
+  yBegin: 0,
+  yEnd: 180,
+};
+
+let barAlphaWidth = 280;
+let barAlphaHeight = 12;
+let barAlphaPots: any = {
+  xBegin: 0,
+  xEnd: 280,
+  yBegin: 0,
+  yEnd: 12,
+};
+
+let barHandlerTop = ref<number>(0);
+
+let barAlphaHandlerLeft = ref<number>(180);
+
+let ctxSquare: CanvasRenderingContext2D;
+
+let ctxBar: CanvasRenderingContext2D;
+
+let ctxBarAlpha: CanvasRenderingContext2D;
+
+let { h, s, l, a } = slimColor.toHsl();
+
+// 色相（H）是色彩的基本属性，就是平常所说的颜色名称，如红色、黄色等。
+let hue: number = h;
+
+// 饱和度（S）是指色彩的纯度，越高色彩越纯，低则逐渐变灰，取0-1的数值。
+let saturation: number = s;
+
+// 明度（V），亮度（L），取 0-1。
+let lightness: number = l;
+
+// 透明度
+let alpha: number = a;
+
+// 输入的颜色值
+let inputValue = ref<string>(props.modelValue);
+
+// 预览选中颜色框的颜色
+let previewColor = ref<string>(
+  `hsl(${hue}, ${saturation * 100}%, ${lightness * 100}%, ${alpha})`
+);
+
+let colorPickerLeft = ref<number>(0);
+let colorPickerTop = ref<number>(0);
+
+let isShow = ref<boolean>(false);
+
+let panelLeft: number;
+let panelTop: number;
+
+// 点击确认前的颜色，用于取消时恢复
+let colorBefore = ref<string>(props.modelValue);
+
+const emit = defineEmits(["change", "update:modelValue"]);
+
+// 监听颜色变化，告知父组件接受
+watch(inputValue, () => {
+  emit("change", inputValue.value);
+});
+
+const init = () => {
+  ctxSquare = refSquare.value.getContext("2d", {
+    willReadFrequently: true,
+  }) as unknown as CanvasRenderingContext2D;
+
+  initSquare();
+
+  ctxBar = refBar.value.getContext("2d") as unknown as CanvasRenderingContext2D;
+
+  initBar(ctxBar);
+
+  if (format.value !== "hex") {
+    generateBarAlpha();
+  }
+
+  slimColor.init(props.modelValue);
+
+  outputColor(slimColor.toHsl());
+  changeInput();
+};
+
+const open = async () => {
+  isShow.value = true;
+
+  await nextTick(() => {
+    setColorPanelPosition();
+    init();
+  });
+};
+
+// 画板定位
+const setColorPanelPosition = () => {
+  console.log("refHandler: ", refHandler.value);
+  // color picker panel 左边距离左边距离
+  let handlerLeft = refHandler.value.getBoundingClientRect().left;
+
+  // color picker panel 底部边距离顶部
+  let handlerTop = refHandler.value.getBoundingClientRect().top;
+
+  // 色板的宽
+  let colorPanelWidth = refColorPanel.value.clientWidth;
+  let colorPaneHeight = refColorPanel.value.clientHeight;
+
+  // 弹框 left 定位
+  if (handlerLeft + props.width >= colorPanelWidth) {
+    colorPickerLeft.value = handlerLeft - (colorPanelWidth + 6);
+  } else {
+    colorPickerLeft.value = handlerLeft + props.width + 6;
+  }
+
+  // 弹框的 top 定位
+  if (handlerTop + props.height >= colorPaneHeight) {
+    colorPickerTop.value = handlerTop - colorPaneHeight + props.height;
+  } else {
+    colorPickerTop.value = handlerTop;
+  }
+
+  // square 点击拖动时圆点位置
+  panelLeft =
+    refPanel.value.getBoundingClientRect().left + colorPickerLeft.value;
+
+  panelTop = refPanel.value.getBoundingClientRect().top + colorPickerTop.value;
+};
+
+// 颜色选择板
+const initSquare = () => {
+  if (ctxSquare) {
+    ctxSquare.clearRect(0, 0, squareWidth, squareHeight);
+  }
+
+  // 底色填充，也就是（举例红色）到白色
+  const gradientBase: CanvasGradient = ctxSquare.createLinearGradient(
+    1,
+    1,
+    squarePots.xEnd,
+    0
+  );
+
+  slimColor.init(inputValue.value);
+
+  let { h } = slimColor.toHsl();
+
+  gradientBase.addColorStop(1, `hsl(${h}, 100%, 50%)`);
+  gradientBase.addColorStop(0, "hsl(0, 0%, 100%)");
+  ctxSquare.fillStyle = gradientBase;
+  ctxSquare.fillRect(0, 0, squareWidth, squareHeight);
+
+  // 第二次填充，黑色到透明
+  let my_gradient1 = ctxSquare.createLinearGradient(1, 1, 0, squarePots.yEnd);
+  my_gradient1.addColorStop(0, `hsl(0, 0%, 0%, 0)`);
+  my_gradient1.addColorStop(1, "hsl(0, 0%, 0%, 1)");
+  ctxSquare.fillStyle = my_gradient1;
+  ctxSquare.fillRect(0, 0, squareWidth, squareHeight);
+};
+
+const initBar = (ctxBarAlpha: any) => {
+  let gradientBar = ctxBarAlpha.createLinearGradient(
+    0,
+    0,
+    barPots.xEnd,
+    barPots.yEnd
+  );
+  gradientBar.addColorStop(0, "#f00");
+  gradientBar.addColorStop(1 / 6, "#ff0");
+  gradientBar.addColorStop(2 / 6, "#0f0");
+  gradientBar.addColorStop(3 / 6, "#0ff");
+  gradientBar.addColorStop(4 / 6, "#00f");
+  gradientBar.addColorStop(5 / 6, "#f0f");
+  gradientBar.addColorStop(1, "#f00");
+
+  ctxBarAlpha.fillStyle = gradientBar;
+  ctxBarAlpha.fillRect(0, 0, barWidth, barHeight);
+};
+
+const initBarAlpha = () => {
+  if (ctxBarAlpha) {
+    // 清空上一次的底色，避免重复画颜色重合
+    ctxBarAlpha.clearRect(0, 0, barAlphaWidth, barAlphaHeight);
+  }
+
+  let gradientBar = ctxBarAlpha.createLinearGradient(
+    0,
+    0,
+    barAlphaPots.xEnd,
+    barAlphaPots.yEnd
+  );
+
+  gradientBar.addColorStop(0, `hsl(${hue}, 100%, 50%, 0)`);
+  gradientBar.addColorStop(1, `hsl(${hue}, 100%, 50%, 1)`);
+
+  ctxBarAlpha.fillStyle = gradientBar;
+  ctxBarAlpha.fillRect(0, 0, barAlphaWidth, barAlphaHeight);
+};
+
+const clickSquare = (e: any) => {
+  let pos = {
+    x: e.clientX - panelLeft,
+    y: e.clientY - panelTop,
+  };
+
+  if (pos.x >= 0 && pos.x < squareWidth && pos.y >= 0 && pos.y < squareHeight) {
+    // 更改鼠标点击位置
+    squarePointX.value = pos.x;
+    squarePointY.value = pos.y;
+
+    let { h, s, l } = getPointHsl(ctxSquare, pos);
+
+    outputColor({ h, s, l });
+  }
+};
+
+const mouseDownSquare = (e: any) => {
+  let pos = {
+    x: e.clientX - panelLeft,
+    y: e.clientY - panelTop,
+  };
+
+  if (pos.x >= 0 && pos.x < squareWidth && pos.y >= 0 && pos.y < squareHeight) {
+    document.onmousemove = function (e: any) {
+      let pos = {
+        x: e.clientX - panelLeft,
+        y: e.clientY - panelTop,
+      };
+
+      pos.x = pos.x < 0 ? 0 : pos.x > squareWidth - 1 ? squareWidth - 1 : pos.x;
+
+      pos.y = pos.y < 0 ? 0 : pos.y > squareHeight ? squareHeight : pos.y;
+
+      // 更改鼠标点击位置
+      squarePointX.value = pos.x;
+      squarePointY.value = pos.y;
+
+      let { h, s, l } = getPointHsl(ctxSquare, pos);
+
+      outputColor({ h, s, l });
     };
+  }
 
-    let barWidth = 12;
-    let barHeight = 180;
-    let barPots: any = {
-      xBegin: 0,
-      xEnd: 12,
-      yBegin: 0,
-      yEnd: 180,
-    };
+  document.onmouseup = function () {
+    document.onmouseup = document.onmousemove = null;
+  };
+};
 
-    let barAlphaWidth = 280;
-    let barAlphaHeight = 12;
-    let barAlphaPots: any = {
-      xBegin: 0,
-      xEnd: 280,
-      yBegin: 0,
-      yEnd: 12,
-    };
+const clickBar = (e: any) => {
+  let pos = {
+    x: 0,
+    y: e.clientY - panelTop,
+  };
 
-    let barHandlerTop = ref<number>(0);
+  if (pos.x >= 0 && pos.x < barWidth && pos.y >= 0 && pos.y < barHeight) {
+    pos.y = pos.y < 0 ? 0 : pos.y > barHeight - 1 ? barHeight - 1 : pos.y;
 
-    let barAlphaHandlerLeft = ref<number>(180);
+    // 更改鼠标点击位置
+    barHandlerTop.value = pos.y;
 
-    let ctxSquare: CanvasRenderingContext2D;
+    // 获取 bar 的颜色值
+    let { h, s, l } = getPointHsl(ctxBar, pos);
 
-    let ctxBar: CanvasRenderingContext2D;
+    inputValue.value = `hsl(${h}, 100%, 50%)`;
 
-    let ctxBarAlpha: CanvasRenderingContext2D;
+    outputColor({ h, s, l });
 
+    initSquare();
 
-    let { h, s, l, a } = slimColor.toHsl();
+    if (format.value !== "hex") {
+      hue = h;
 
-    // 色相（H）是色彩的基本属性，就是平常所说的颜色名称，如红色、黄色等。
-    let hue: number = h;
+      initBarAlpha();
+    }
 
-    // 饱和度（S）是指色彩的纯度，越高色彩越纯，低则逐渐变灰，取0-1的数值。
-    let saturation: number = s;
-
-    // 明度（V），亮度（L），取 0-1。
-    let lightness: number = l;
-
-    // 透明度
-    let alpha: number = a;
-
-    // 输入的颜色值
-    let inputValue = ref<string>(props.modelValue);
-
-    // 预览选中颜色框的颜色
-    let previewColor = ref<string>(
-      `hsl(${hue}, ${saturation * 100}%, ${lightness * 100}%, ${alpha})`,
-    );
-
-    let colorPickerLeft = ref<number>(0);
-    let colorPickerTop = ref<number>(0);
-
-    let isShow = ref<boolean>(false);
-
-    let panelLeft: number;
-    let panelTop: number;
-
-    // 点击确认前的颜色，用于取消时恢复
-    let colorBefore = props.modelValue;
-
-    // 监听颜色变化，告知父组件接受
-    watch(inputValue, () => {
-      emit('change', inputValue.value);
+    // 传入的 squarePoint 参数，记录的是左后一次 square 点击的位置参数
+    let {
+      h: lastH,
+      s: lastS,
+      l: lastL,
+    } = getPointHsl(ctxSquare, {
+      x: squarePointX.value,
+      y: squarePointY.value,
     });
 
-    const init = () => {
-      ctxSquare = refSquare.value.getContext(
-        '2d',
-      ) as unknown as CanvasRenderingContext2D;
+    previewColor.value = `hsl(${lastH}, ${lastS * 100}%, ${
+      lastL * 100
+    }%, ${alpha})`;
+  }
+};
+
+const mouseDownBar = (e: any) => {
+  let pos = {
+    x: 0,
+    y: e.clientY - panelTop,
+  };
+
+  if (pos.x >= 0 && pos.x < barWidth && pos.y >= 0 && pos.y < barHeight) {
+    document.onmousemove = function (e: any) {
+      let pos = {
+        x: 0,
+        y: e.clientY - panelTop,
+      };
+
+      pos.y = pos.y < 0 ? 0 : pos.y > barHeight - 1 ? barHeight - 1 : pos.y;
+
+      // 更改鼠标点击位置
+      barHandlerTop.value = pos.y;
+
+      // 获取 bar 的颜色值
+      let { h, s, l } = getPointHsl(ctxBar, pos);
+
+      inputValue.value = `hsl(${h}, 100%, 50%)`;
+
+      outputColor({ h, s, l });
 
       initSquare();
 
-      ctxBar = refBar.value.getContext(
-        '2d',
-      ) as unknown as CanvasRenderingContext2D;
+      if (format.value !== "hex") {
+        hue = h;
 
-      initBar(ctxBar);
-
-      if (format.value !== 'hex') {
-        generateBarAlpha();
+        initBarAlpha();
       }
 
-      slimColor.init(props.modelValue)
+      // 传入的 squarePoint 参数，记录的是左后一次 square 点击的位置参数
+      let {
+        h: lastH,
+        s: lastS,
+        l: lastL,
+      } = getPointHsl(ctxSquare, {
+        x: squarePointX.value,
+        y: squarePointY.value,
+      });
 
-      outputColor(slimColor.toHsl());
-      changeInput();
+      previewColor.value = `hsl(${lastH}, ${lastS * 100}%, ${
+        lastL * 100
+      }%, ${alpha})`;
     };
+  }
 
-    const open = async () => {
+  document.onmouseup = function () {
+    document.onmouseup = document.onmousemove = null;
+  };
+};
 
-      isShow.value = true;
+const mouseDownBarHandler = (e: any) => {
+  let pos = {
+    x: 0,
+    y: e.clientY - panelTop,
+  };
 
-      await nextTick(() => {
-        setColorPanelPosition();
-        init();
-      })
-    };
-
-    // 画板定位
-    const setColorPanelPosition = () => {
-      // color picker panel 左边距离左边距离
-      let handlerLeft = refHandler.value.getBoundingClientRect().left;
-
-      // color picker panel 底部边距离顶部
-      let handlerTop = refHandler.value.getBoundingClientRect().top;
-
-      // 色板的宽
-      let colorPanelWidth = refColorPanel.value.clientWidth;
-      let colorPaneHeight = refColorPanel.value.clientHeight;
-
-      // 弹框 left 定位
-      if (handlerLeft + props.width >= colorPanelWidth) {
-        colorPickerLeft.value = handlerLeft - (colorPanelWidth + 6);
-      } else {
-        colorPickerLeft.value = handlerLeft + props.width + 6;
-      }
-
-      // 弹框的 top 定位
-      if (handlerTop + props.height >= colorPaneHeight) {
-        colorPickerTop.value = handlerTop - colorPaneHeight + props.height
-      }
-      else {
-        colorPickerTop.value = handlerTop
-      }
-
-      // square 点击拖动时圆点位置
-      panelLeft =
-        refPanel.value.getBoundingClientRect().left + colorPickerLeft.value;
-
-      panelTop =
-        refPanel.value.getBoundingClientRect().top + colorPickerTop.value;
-    };
-
-    // 颜色选择板
-    const initSquare = () => {
-      if (ctxSquare) {
-        ctxSquare.clearRect(0, 0, squareWidth, squareHeight);
-      }
-
-      // 底色填充，也就是（举例红色）到白色
-      const gradientBase: CanvasGradient = ctxSquare.createLinearGradient(
-        1,
-        1,
-        squarePots.xEnd,
-        0,
-      );
-    
-      slimColor.init(inputValue.value)
-
-      let { h } = slimColor.toHsl();
-
-      gradientBase.addColorStop(1, `hsl(${h}, 100%, 50%)`);
-      gradientBase.addColorStop(0, 'hsl(0, 0%, 100%)');
-      ctxSquare.fillStyle = gradientBase;
-      ctxSquare.fillRect(0, 0, squareWidth, squareHeight);
-
-      // 第二次填充，黑色到透明
-      let my_gradient1 = ctxSquare.createLinearGradient(
-        1,
-        1,
-        0,
-        squarePots.yEnd,
-      );
-      my_gradient1.addColorStop(0, `hsl(0, 0%, 0%, 0)`);
-      my_gradient1.addColorStop(1, 'hsl(0, 0%, 0%, 1)');
-      ctxSquare.fillStyle = my_gradient1;
-      ctxSquare.fillRect(0, 0, squareWidth, squareHeight);
-    };
-
-    const initBar = (ctxBarAlpha: any) => {
-      let gradientBar = ctxBarAlpha.createLinearGradient(
-        0,
-        0,
-        barPots.xEnd,
-        barPots.yEnd,
-      );
-      gradientBar.addColorStop(0, '#f00');
-      gradientBar.addColorStop(1 / 6, '#ff0');
-      gradientBar.addColorStop(2 / 6, '#0f0');
-      gradientBar.addColorStop(3 / 6, '#0ff');
-      gradientBar.addColorStop(4 / 6, '#00f');
-      gradientBar.addColorStop(5 / 6, '#f0f');
-      gradientBar.addColorStop(1, '#f00');
-
-      ctxBarAlpha.fillStyle = gradientBar;
-      ctxBarAlpha.fillRect(0, 0, barWidth, barHeight);
-    };
-
-    const initBarAlpha = () => {
-      if (ctxBarAlpha) {
-        // 清空上一次的底色，避免重复画颜色重合
-        ctxBarAlpha.clearRect(0, 0, barAlphaWidth, barAlphaHeight);
-      }
-
-      let gradientBar = ctxBarAlpha.createLinearGradient(
-        0,
-        0,
-        barAlphaPots.xEnd,
-        barAlphaPots.yEnd,
-      );
-
-      gradientBar.addColorStop(0, `hsl(${hue}, 100%, 50%, 0)`);
-      gradientBar.addColorStop(1, `hsl(${hue}, 100%, 50%, 1)`);
-
-      ctxBarAlpha.fillStyle = gradientBar;
-      ctxBarAlpha.fillRect(0, 0, barAlphaWidth, barAlphaHeight);
-    };
-
-    const clickSquare = (e: any) => {
-      let pos = {
-        x: e.clientX - panelLeft,
-        y: e.clientY - panelTop,
-      };
-
-      if (
-        pos.x >= 0 &&
-        pos.x < squareWidth &&
-        pos.y >= 0 &&
-        pos.y < squareHeight
-      ) {
-        // 更改鼠标点击位置
-        squarePointX.value = pos.x;
-        squarePointY.value = pos.y;
-
-        let { h, s, l } = getPointHsl(ctxSquare, pos);
-
-        outputColor({ h, s, l });
-      }
-    };
-
-    const mouseDownSquare = (e: any) => {
-      let pos = {
-        x: e.clientX - panelLeft,
-        y: e.clientY - panelTop,
-      };
-
-      if (
-        pos.x >= 0 &&
-        pos.x < squareWidth &&
-        pos.y >= 0 &&
-        pos.y < squareHeight
-      ) {
-        document.onmousemove = function (e: any) {
-          let pos = {
-            x: e.clientX - panelLeft,
-            y: e.clientY - panelTop,
-          };
-
-          pos.x =
-            pos.x < 0 ? 0 : pos.x > squareWidth - 1 ? squareWidth - 1 : pos.x;
-
-          pos.y = pos.y < 0 ? 0 : pos.y > squareHeight ? squareHeight : pos.y;
-
-          // 更改鼠标点击位置
-          squarePointX.value = pos.x;
-          squarePointY.value = pos.y;
-
-          let { h, s, l } = getPointHsl(ctxSquare, pos);
-
-          outputColor({ h, s, l });
-        };
-      }
-
-      document.onmouseup = function (e: any) {
-        document.onmouseup = document.onmousemove = null;
-      };
-    };
-
-    const clickBar = (e: any) => {
+  if (pos.x >= 0 && pos.x < barWidth && pos.y >= 0 && pos.y < barHeight) {
+    document.onmousemove = function (e: any) {
       let pos = {
         x: 0,
         y: e.clientY - panelTop,
       };
 
-      if (pos.x >= 0 && pos.x < barWidth && pos.y >= 0 && pos.y < barHeight) {
-        pos.y = pos.y < 0 ? 0 : pos.y > barHeight - 1 ? barHeight - 1 : pos.y;
+      pos.y = pos.y < 0 ? 0 : pos.y > barHeight - 1 ? barHeight - 1 : pos.y;
 
-        // 更改鼠标点击位置
-        barHandlerTop.value = pos.y;
+      // 更改鼠标点击位置
+      barHandlerTop.value = pos.y;
 
-        // 获取 bar 的颜色值
-        let { h, s, l } = getPointHsl(ctxBar, pos);
+      let { h, s, l } = getPointHsl(ctxBar, pos);
 
-        inputValue.value = `hsl(${h}, 100%, 50%)`;
+      inputValue.value = `hsl(${h}, 100%, 50%)`;
 
-        outputColor({ h, s, l });
+      initSquare();
 
-        initSquare();
+      outputColor({ h, s, l });
 
-        if (format.value !== 'hex') {
-          hue = h;
+      if (format.value !== "hex") {
+        hue = h;
 
-          initBarAlpha();
-        }
-
-        // 传入的 squarePoint 参数，记录的是左后一次 square 点击的位置参数
-        let {
-          h: lastH,
-          s: lastS,
-          l: lastL,
-        } = getPointHsl(ctxSquare, {
-          x: squarePointX.value,
-          y: squarePointY.value,
-        });
-
-        previewColor.value = `hsl(${lastH}, ${lastS * 100}%, ${
-          lastL * 100
-        }%, ${alpha})`;
-      }
-    };
-
-    const mouseDownBar = (e: any) => {
-      let pos = {
-        x: 0,
-        y: e.clientY - panelTop,
-      };
-
-      if (pos.x >= 0 && pos.x < barWidth && pos.y >= 0 && pos.y < barHeight) {
-        document.onmousemove = function (e: any) {
-          let pos = {
-            x: 0,
-            y: e.clientY - panelTop,
-          };
-
-          pos.y = pos.y < 0 ? 0 : pos.y > barHeight - 1 ? barHeight - 1 : pos.y;
-
-          // 更改鼠标点击位置
-          barHandlerTop.value = pos.y;
-
-          // 获取 bar 的颜色值
-          let { h, s, l } = getPointHsl(ctxBar, pos);
-
-          inputValue.value = `hsl(${h}, 100%, 50%)`;
-
-          outputColor({ h, s, l });
-
-          initSquare();
-
-          if (format.value !== 'hex') {
-            hue = h;
-
-            initBarAlpha();
-          }
-
-          // 传入的 squarePoint 参数，记录的是左后一次 square 点击的位置参数
-          let {
-            h: lastH,
-            s: lastS,
-            l: lastL,
-          } = getPointHsl(ctxSquare, {
-            x: squarePointX.value,
-            y: squarePointY.value,
-          });
-
-          previewColor.value = `hsl(${lastH}, ${lastS * 100}%, ${
-            lastL * 100
-          }%, ${alpha})`;
-        };
+        initBarAlpha();
       }
 
-      document.onmouseup = function (e: any) {
-        document.onmouseup = document.onmousemove = null;
-      };
+      // 传入的 squarePoint 参数，记录的是左后一次 square 点击的位置参数
+      let {
+        h: lastH,
+        s: lastS,
+        l: lastL,
+      } = getPointHsl(ctxSquare, {
+        x: squarePointX.value,
+        y: squarePointY.value,
+      });
+
+      previewColor.value = `hsl(${lastH}, ${lastS * 100}%, ${
+        lastL * 100
+      }%, ${alpha})`;
     };
+  }
 
-    const mouseDownBarHandler = (e: any) => {
-      let pos = {
-        x: 0,
-        y: e.clientY - panelTop,
-      };
+  document.onmouseup = function () {
+    document.onmouseup = document.onmousemove = null;
+  };
+};
 
-      if (pos.x >= 0 && pos.x < barWidth && pos.y >= 0 && pos.y < barHeight) {
-        document.onmousemove = function (e: any) {
-          let pos = {
-            x: 0,
-            y: e.clientY - panelTop,
-          };
+const clickBarAlpha = (e: any) => {
+  let pos = {
+    x: e.clientX - panelLeft,
+    y: 0,
+  };
 
-          pos.y = pos.y < 0 ? 0 : pos.y > barHeight - 1 ? barHeight - 1 : pos.y;
+  if (
+    pos.x >= 0 &&
+    pos.x < barAlphaWidth &&
+    pos.y >= 0 &&
+    pos.y < barAlphaHeight
+  ) {
+    pos.x = pos.x < 0 ? 0 : pos.x > barAlphaWidth ? barAlphaWidth : pos.x;
 
-          // 更改鼠标点击位置
-          barHandlerTop.value = pos.y;
+    // 更改鼠标点击位置
+    barAlphaHandlerLeft.value = pos.x;
 
-          let { h, s, l } = getPointHsl(ctxBar, pos);
+    // 计算透明度
+    alpha = parseFloat((pos.x / barAlphaWidth).toFixed(2));
 
-          inputValue.value = `hsl(${h}, 100%, 50%)`;
+    // 传入的 squarePoint 参数，记录的是左后一次 square 点击的位置参数
+    let { h, s, l } = getPointHsl(ctxSquare, {
+      x: squarePointX.value,
+      y: squarePointY.value,
+    });
 
-          initSquare();
+    outputColor({ h, s, l });
+  }
+};
 
-          outputColor({ h, s, l });
+const mouseDownBarAlpha = (e: any) => {
+  let pos = {
+    x: e.clientX - panelLeft,
+    y: 0,
+  };
 
-          if (format.value !== 'hex') {
-            hue = h;
+  pos.x = pos.x < 0 ? 0 : pos.x > barAlphaWidth ? barAlphaWidth : pos.x;
 
-            initBarAlpha();
-          }
-
-          // 传入的 squarePoint 参数，记录的是左后一次 square 点击的位置参数
-          let {
-            h: lastH,
-            s: lastS,
-            l: lastL,
-          } = getPointHsl(ctxSquare, {
-            x: squarePointX.value,
-            y: squarePointY.value,
-          });
-
-          previewColor.value = `hsl(${lastH}, ${lastS * 100}%, ${
-            lastL * 100
-          }%, ${alpha})`;
-        };
-      }
-
-      document.onmouseup = function (e: any) {
-        document.onmouseup = document.onmousemove = null;
-      };
-    };
-
-    const clickBarAlpha = (e: any) => {
+  if (
+    pos.x >= 0 &&
+    pos.x <= barAlphaWidth &&
+    pos.y >= 0 &&
+    pos.y <= barAlphaHeight
+  ) {
+    document.onmousemove = function (e: any) {
       let pos = {
         x: e.clientX - panelLeft,
         y: 0,
       };
 
+      pos.x = pos.x < 0 ? 0 : pos.x > barAlphaWidth ? barAlphaWidth : pos.x;
+
       if (
         pos.x >= 0 &&
-        pos.x < barAlphaWidth &&
+        pos.x <= barAlphaWidth &&
         pos.y >= 0 &&
-        pos.y < barAlphaHeight
+        pos.y <= barAlphaHeight
       ) {
         pos.x = pos.x < 0 ? 0 : pos.x > barAlphaWidth ? barAlphaWidth : pos.x;
 
@@ -682,14 +700,32 @@ export default defineComponent({
         outputColor({ h, s, l });
       }
     };
+  }
 
-    const mouseDownBarAlpha = (e: any) => {
+  document.onmouseup = function () {
+    document.onmouseup = document.onmousemove = null;
+  };
+};
+
+const mouseDownBarAlphaHandler = (e: any) => {
+  let pos = {
+    x: e.clientX - panelLeft,
+    y: 0,
+  };
+
+  pos.x = pos.x < 0 ? 0 : pos.x > barAlphaWidth ? barAlphaWidth : pos.x;
+
+  if (
+    pos.x >= 0 &&
+    pos.x <= barAlphaWidth &&
+    pos.y >= 0 &&
+    pos.y <= barAlphaHeight
+  ) {
+    document.onmousemove = function (e: any) {
       let pos = {
         x: e.clientX - panelLeft,
         y: 0,
       };
-
-      pos.x = pos.x < 0 ? 0 : pos.x > barAlphaWidth ? barAlphaWidth : pos.x;
 
       if (
         pos.x >= 0 &&
@@ -697,352 +733,234 @@ export default defineComponent({
         pos.y >= 0 &&
         pos.y <= barAlphaHeight
       ) {
-        document.onmousemove = function (e: any) {
-          let pos = {
-            x: e.clientX - panelLeft,
-            y: 0,
-          };
-
-          pos.x = pos.x < 0 ? 0 : pos.x > barAlphaWidth ? barAlphaWidth : pos.x;
-
-          if (
-            pos.x >= 0 &&
-            pos.x <= barAlphaWidth &&
-            pos.y >= 0 &&
-            pos.y <= barAlphaHeight
-          ) {
-            pos.x =
-              pos.x < 0 ? 0 : pos.x > barAlphaWidth ? barAlphaWidth : pos.x;
-
-            // 更改鼠标点击位置
-            barAlphaHandlerLeft.value = pos.x;
-
-            // 计算透明度
-            alpha = parseFloat((pos.x / barAlphaWidth).toFixed(2));
-
-            // 传入的 squarePoint 参数，记录的是左后一次 square 点击的位置参数
-            let { h, s, l } = getPointHsl(ctxSquare, {
-              x: squarePointX.value,
-              y: squarePointY.value,
-            });
-
-            outputColor({ h, s, l });
-          }
-        };
-      }
-
-      document.onmouseup = function (e: any) {
-        document.onmouseup = document.onmousemove = null;
-      };
-    };
-
-    const mouseDownBarAlphaHandler = (e: any) => {
-      let pos = {
-        x: e.clientX - panelLeft,
-        y: 0,
-      };
-
-      pos.x = pos.x < 0 ? 0 : pos.x > barAlphaWidth ? barAlphaWidth : pos.x;
-
-      if (
-        pos.x >= 0 &&
-        pos.x <= barAlphaWidth &&
-        pos.y >= 0 &&
-        pos.y <= barAlphaHeight
-      ) {
-        document.onmousemove = function (e: any) {
-          let pos = {
-            x: e.clientX - panelLeft,
-            y: 0,
-          };
-
-          if (
-            pos.x >= 0 &&
-            pos.x <= barAlphaWidth &&
-            pos.y >= 0 &&
-            pos.y <= barAlphaHeight
-          ) {
-
-            pos.x =
-              pos.x < 0 ? 0 : pos.x > barAlphaWidth ? barAlphaWidth : pos.x;
-
-            // 更改鼠标点击位置
-            barAlphaHandlerLeft.value = pos.x;
-
-            // 计算透明度
-            alpha = parseFloat((pos.x / barAlphaWidth).toFixed(2));
-
-            // 传入的 squarePoint 参数，记录的是左后一次 square 点击的位置参数
-            let { h, s, l } = getPointHsl(ctxSquare, {
-              x: squarePointX.value,
-              y: squarePointY.value,
-            });
-
-            outputColor({ h, s, l });
-          }
-        };
-      }
-
-      document.onmouseup = function (e: any) {
-        document.onmouseup = document.onmousemove = null;
-      };
-    };
-
-    const getPosTop = (hue: number) => {
-      return Math.round(
-        (hue *
-          (refSquare.value.offsetHeight -
-            refBarHandler.value.offsetHeight / 2)) /
-          360,
-      );
-    };
-
-    const getPointHsl = (ctx: CanvasRenderingContext2D, pos: Pos) => {
-      let imgData = ctx.getImageData(pos.x, pos.y, 1, 1);
-
-      slimColor.init({
-        r: imgData.data[0],
-        g: imgData.data[1],
-        b: imgData.data[2],
-      })
-
-      let { h, s, l } = slimColor.toHsl();
-
-      return { h, s, l };
-    };
-
-    // 用户输入值改变
-    const changeInput = () => {
-      if (!inputValue) return;
-
-      let { h, s, l } = toHsl();
-
-      // 更新 square 色板的颜色
-      initSquare();
-
-      if (format.value !== 'hex') {
-        hue = h;
-
-        initBarAlpha();
-      }
-
-      // 更新预览格子的颜色
-      previewColor.value = `hsl(${h}, ${s * 100}%, ${l * 100}%, ${alpha})`;
-
-      // 移动 handler 位置
-      setHandlers();
-    };
-
-    const outputColor = (hsl: Hsl) => {
-      if (inputValue.value === '') return;
-
-      let exchangedValue: string = exchangeFormat(hsl);
-
-      inputValue.value = exchangedValue;
-
-      previewColor.value = `hsl(${hsl.h}, ${hsl.s * 100}%, ${
-        hsl.l * 100
-      }%, ${alpha})`;
-    };
-
-    interface Hsl {
-      h: number;
-      s: number;
-      l: number;
-    }
-
-    /**
-     * 将 rgb 颜色转换为其他格式颜色
-     *
-     * @param hsl
-     */
-    const exchangeFormat = (origin: any) => {
-
-      slimColor.init(origin)
-      slimColor.setAlpha(alpha);
-
-      let exchanged: string = '';
-
-      switch (format.value) {
-        case 'hex':
-          exchanged = slimColor.toHex();
-          break;
-
-        case 'rgb':
-          exchanged = slimColor.toRgbString();
-          break;
-
-        case 'rgba':
-          exchanged = slimColor.toRgbString();
-          break;
-
-        case 'hsl':
-          exchanged = slimColor.toHslString();
-          break;
-
-        case 'hsla':
-          exchanged = slimColor.toHslString();
-          break;
-      }
-
-      return exchanged;
-    };
-
-    const toHsl = () => {
-      
-      slimColor.init(inputValue.value)
-
-      alpha = slimColor.getAlpha();
-
-      return slimColor.toHsl();
-    };
-
-    // 设置颜色选择板点击个颜色位置的 handler
-    const setHandlers = () => {
-      // - 移动 point 位置
-      
-      slimColor.init(inputValue.value)
-
-      let { h, s, v } = slimColor.toHsv();
-
-      let posY = getPosTop(h);
-
-      barHandlerTop.value = posY;
-
-      barAlphaHandlerLeft.value = alpha * barAlphaWidth;
-
-      let saturation = Math.max(0, Math.min(100, s));
-      let value = Math.max(0, Math.min(100, v));
-
-      squarePointX.value = saturation * (squareWidth - 1);
-      squarePointY.value = (1 - value) * squareHeight;
-    };
-
-    const changeFormat = () => {
-      if (!inputValue) return;
-
-      inputValue.value = exchangeFormat(inputValue.value);
-
-      let { h, s, l, a } = toHsl();
-
-      if (format.value !== 'hex') {
-        hue = h;
-
-        generateBarAlpha();
-      } else {
-        alpha = a;
-
-        previewColor.value = `hsl(${h}, ${s * 100}%, ${l * 100}%, ${alpha})`;
-
-        barAlphaHandlerLeft.value = alpha * barAlphaWidth;
-      }
-    };
-
-    const generateBarAlpha = () => {
-      ctxBarAlpha = refBarAlpha.value.getContext(
-        '2d',
-      ) as unknown as CanvasRenderingContext2D;
-
-      initBarAlpha();
-    };
-
-    const ok = () => {
-      colorBefore = inputValue.value;
-
-      emit('update:modelValue', inputValue.value);
-    };
-
-    const cancel = () => {
-      if (isShow.value) {
-        
-      slimColor.init(colorBefore)
-
-      let { h, s, l, a } = slimColor.toHsl();
-
-        alpha = a;
+        pos.x = pos.x < 0 ? 0 : pos.x > barAlphaWidth ? barAlphaWidth : pos.x;
+
+        // 更改鼠标点击位置
+        barAlphaHandlerLeft.value = pos.x;
+
+        // 计算透明度
+        alpha = parseFloat((pos.x / barAlphaWidth).toFixed(2));
+
+        // 传入的 squarePoint 参数，记录的是左后一次 square 点击的位置参数
+        let { h, s, l } = getPointHsl(ctxSquare, {
+          x: squarePointX.value,
+          y: squarePointY.value,
+        });
 
         outputColor({ h, s, l });
-
-        hide();
-
       }
     };
+  }
 
-    const hide = () => {
-      isShow.value = false;
+  document.onmouseup = function () {
+    document.onmouseup = document.onmousemove = null;
+  };
+};
 
-      // 归零画板的偏移距离，否则二次打开会出现偏移错误
-      colorPickerLeft.value = 0;
-      colorPickerTop.value = 0;
-    };
+const getPosTop = (hue: number) => {
+  return Math.round(
+    (hue *
+      (refSquare.value.offsetHeight - refBarHandler.value.offsetHeight / 2)) /
+      360
+  );
+};
 
-    /**
-     * 选择预定义的颜色
-     * @param preset 选中的颜色
-     *
-     */
-    const choosePreset = (preset: any) => {
-      colorBefore = inputValue.value;
+const getPointHsl = (ctx: CanvasRenderingContext2D, pos: Pos) => {
+  let imgData = ctx.getImageData(pos.x, pos.y, 1, 1);
 
-      inputValue.value = preset;
+  slimColor.init({
+    r: imgData.data[0],
+    g: imgData.data[1],
+    b: imgData.data[2],
+  });
 
-      slimColor.init(preset)
+  let { h, s, l } = slimColor.toHsl();
 
-      format.value = slimColor.getFormat();
-      console.log('format.value: ', format.value)
+  return { h, s, l };
+};
 
-      alpha = slimColor.getAlpha();
+// 用户输入值改变
+const changeInput = () => {
+  if (!inputValue.value) return;
 
-      changeFormat();
+  let { h, s, l } = toHsl();
 
-      changeInput();
-    };
+  // 更新 square 色板的颜色
+  initSquare();
 
-    return {
-      refColorPanel,
-      refHandler,
-      refBarHandler,
-      refPanel,
-      refSquare,
-      refBar,
-      refBarAlpha,
-      refBarAlphaHandler,
-      squareWidth,
-      squareHeight,
-      squarePots,
-      barWidth,
-      barHeight,
-      barPots,
-      barAlphaWidth,
-      barAlphaHeight,
-      barAlphaPots,
-      inputValue,
-      changeInput,
-      previewColor,
-      squarePointX,
-      squarePointY,
-      clickSquare,
-      mouseDownSquare,
-      clickBar,
-      mouseDownBar,
-      barHandlerTop,
-      clickBarAlpha,
-      mouseDownBarAlpha,
-      mouseDownBarAlphaHandler,
-      mouseDownBarHandler,
-      barAlphaHandlerLeft,
-      format,
-      changeFormat,
-      colorPickerTop,
-      colorPickerLeft,
-      open,
-      isShow,
-      ok,
-      cancel,
-      choosePreset
-    };
-  },
-});
+  if (format.value !== "hex") {
+    hue = h;
+
+    initBarAlpha();
+  }
+
+  // 更新预览格子的颜色
+  previewColor.value = `hsl(${h}, ${s * 100}%, ${l * 100}%, ${alpha})`;
+
+  // 移动 handler 位置
+  setHandlers();
+};
+
+const outputColor = (hsl: Hsl) => {
+  if (inputValue.value === "") return;
+
+  let exchangedValue: string = exchangeFormat(hsl);
+
+  inputValue.value = exchangedValue;
+
+  previewColor.value = `hsl(${hsl.h}, ${hsl.s * 100}%, ${
+    hsl.l * 100
+  }%, ${alpha})`;
+};
+
+interface Hsl {
+  h: number;
+  s: number;
+  l: number;
+}
+
+/**
+ * 将 rgb 颜色转换为其他格式颜色
+ *
+ * @param hsl
+ */
+const exchangeFormat = (origin: any) => {
+  slimColor.init(origin);
+  slimColor.setAlpha(alpha);
+
+  let exchanged = "";
+
+  switch (format.value) {
+    case "hex":
+      exchanged = slimColor.toHex();
+      break;
+
+    case "rgb":
+      exchanged = slimColor.toRgbString();
+      break;
+
+    case "rgba":
+      exchanged = slimColor.toRgbString();
+      break;
+
+    case "hsl":
+      exchanged = slimColor.toHslString();
+      break;
+
+    case "hsla":
+      exchanged = slimColor.toHslString();
+      break;
+  }
+
+  return exchanged;
+};
+
+const toHsl = () => {
+  slimColor.init(inputValue.value);
+
+  alpha = slimColor.getAlpha();
+
+  return slimColor.toHsl();
+};
+
+// 设置颜色选择板点击个颜色位置的 handler
+const setHandlers = () => {
+  // - 移动 point 位置
+
+  slimColor.init(inputValue.value);
+
+  let { h, s, v } = slimColor.toHsv();
+
+  let posY = getPosTop(h);
+
+  barHandlerTop.value = posY;
+
+  barAlphaHandlerLeft.value = alpha * barAlphaWidth;
+
+  let saturation = Math.max(0, Math.min(100, s));
+  let value = Math.max(0, Math.min(100, v));
+
+  squarePointX.value = saturation * (squareWidth - 1);
+  squarePointY.value = (1 - value) * squareHeight;
+};
+
+const changeFormat = () => {
+  if (!inputValue.value) return;
+
+  inputValue.value = exchangeFormat(inputValue.value);
+
+  let { h, s, l, a } = toHsl();
+
+  if (format.value !== "hex") {
+    hue = h;
+
+    generateBarAlpha();
+  } else {
+    alpha = a;
+
+    previewColor.value = `hsl(${h}, ${s * 100}%, ${l * 100}%, ${alpha})`;
+
+    barAlphaHandlerLeft.value = alpha * barAlphaWidth;
+  }
+};
+
+const generateBarAlpha = () => {
+  ctxBarAlpha = refBarAlpha.value.getContext(
+    "2d"
+  ) as unknown as CanvasRenderingContext2D;
+
+  initBarAlpha();
+};
+
+const ok = () => {
+  colorBefore.value = inputValue.value;
+
+  emit("update:modelValue", inputValue.value);
+};
+
+const cancel = () => {
+  if (isShow.value) {
+    slimColor.init(colorBefore.value);
+
+    let { h, s, l, a } = slimColor.toHsl();
+
+    alpha = a;
+
+    outputColor({ h, s, l });
+
+    hide();
+  }
+};
+
+const hide = () => {
+  isShow.value = false;
+
+  // 归零画板的偏移距离，否则二次打开会出现偏移错误
+  colorPickerLeft.value = 0;
+  colorPickerTop.value = 0;
+};
+
+/**
+ * 选择预定义的颜色
+ * @param preset 选中的颜色
+ *
+ */
+const choosePreset = (preset: any) => {
+  colorBefore.value = inputValue.value;
+
+  inputValue.value = preset;
+
+  slimColor.init(preset);
+
+  format.value = slimColor.getFormat();
+  console.log("format.value: ", format.value);
+
+  alpha = slimColor.getAlpha();
+
+  changeFormat();
+
+  changeInput();
+};
 </script>
 
 <style lang="less" scope>
@@ -1053,7 +971,7 @@ export default defineComponent({
   z-index: 10000000000;
 
   .slim-color-picker_handler {
-    background: url('/image/static/color_picker_alpha.png') repeat;
+    background: url("/image/static/color_picker_alpha.png") repeat;
     outline: #dddddd solid 1px;
     cursor: pointer;
   }
@@ -1119,7 +1037,8 @@ export default defineComponent({
       margin-top: 10px;
       width: calc(100% - 22px);
       position: relative;
-      background: url('/image/static/color_picker_alpha.png') repeat-x;
+      background: url("/image/static/color_picker_alpha.png")
+        repeat-x;
 
       .panel_alpha_handler {
         position: absolute;
@@ -1225,7 +1144,7 @@ export default defineComponent({
       grid-row-gap: 6px;
       margin-top: 10px;
       .panel_preset_item {
-        background: url('/image/static/color_picker_alpha.png') repeat;
+        background: url("/image/static/color_picker_alpha.png") repeat;
         outline: #dddddd solid 1px;
         cursor: pointer;
 
